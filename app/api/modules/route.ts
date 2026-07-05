@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-// Implemented by content agent
+import { MODULES } from "@/lib/content/curriculum";
+
 export async function GET() {
-  return NextResponse.json({ modules: [] });
+  return NextResponse.json({ modules: MODULES });
 }
