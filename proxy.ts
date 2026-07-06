@@ -7,6 +7,8 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // In demo mode auth is bypassed — the API routes serve a demo user instead.
+  if (process.env.DEMO_MODE === "true") return;
   if (isProtectedRoute(req)) {
     await auth.protect();
   }

@@ -1,24 +1,7 @@
-/**
- * Progress API — tracks which steps a learner has completed.
- *
- * GET  /api/progress  → { completedStepIds, streak, nextStepId }
- * POST /api/progress  → { stepId: string } → { ok, nextStepId }
- *
- * On first GET for a user, a minimal user row is upserted (no webhook needed).
- *
- * Built by Claude via Lumbergh. Not a competition entry.
- */
-
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
-import { progress, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
 import { z } from "zod";
-
-// ---------------------------------------------------------------------------
-// Step ordering — used to compute nextStepId
-// ---------------------------------------------------------------------------
 
 const STEP_ORDER = [
   "day1-podcast",
@@ -40,126 +23,84 @@ const STEP_ORDER = [
   "day5-capstone",
 ] as const;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// In-memory store for demo mode — resets on server restart, which is fine for local testing.
+const demoProgress = new Set<string>();
 
-/**
- * Upsert a minimal user row on first API call — avoids needing a Clerk webhook.
- */
-async function ensureUser(userId: string): Promise<void> {
-  await db
-    .insert(users)
-    .values({
-      id: userId,
-      email: `user-${userId}@agentpath.app`, // placeholder until webhook provides real email
-      displayName: "Learner",
-    })
-    .onConflictDoNothing();
-}
-
-/**
- * Count consecutive days with at least one completion, counting back from today.
- * Streak breaks on the first day with no activity.
- */
 function calculateStreak(completedAts: Date[]): number {
   if (completedAts.length === 0) return 0;
-
   const days = new Set(completedAts.map((d) => new Date(d).toDateString()));
   let streak = 0;
   const today = new Date();
-
   for (let i = 0; i < 30; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    if (days.has(d.toDateString())) {
-      streak++;
-    } else {
-      break;
-    }
+    if (days.has(d.toDateString())) streak++;
+    else break;
   }
-
   return streak;
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/progress
-// ---------------------------------------------------------------------------
+async function resolveUserId(): Promise<string | null> {
+  if (DEMO_MODE) return DEMO_USER_ID;
+  const { userId } = await auth();
+  return userId;
+}
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = await resolveUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (DEMO_MODE) {
+    const completedStepIds = Array.from(demoProgress);
+    const nextStepId = STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
+    return NextResponse.json({ completedStepIds, streak: completedStepIds.length > 0 ? 1 : 0, nextStepId });
   }
 
-  // Upsert user row if this is their first visit
-  await ensureUser(userId);
+  // Real DB path
+  const { db } = await import("@/lib/db");
+  const { progress, users } = await import("@/lib/db/schema");
+  const { eq } = await import("drizzle-orm");
 
-  const rows = await db
-    .select()
-    .from(progress)
-    .where(eq(progress.userId, userId));
-
+  await db.insert(users).values({ id: userId, email: `user-${userId}@agentpath.app`, displayName: "Learner" }).onConflictDoNothing();
+  const rows = await db.select().from(progress).where(eq(progress.userId, userId));
   const completedStepIds = rows.map((r) => r.stepId);
   const streak = calculateStreak(rows.map((r) => r.completedAt));
-  const nextStepId =
-    STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
-
+  const nextStepId = STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
   return NextResponse.json({ completedStepIds, streak, nextStepId });
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/progress
-// ---------------------------------------------------------------------------
-
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const userId = await resolveUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
+  try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const parsed = z.object({ stepId: z.string().min(1) }).safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "stepId is required", details: parsed.error.issues },
-      { status: 422 }
-    );
-  }
+  if (!parsed.success) return NextResponse.json({ error: "stepId is required" }, { status: 422 });
   const { stepId } = parsed.data;
 
-  // Upsert user row (idempotent)
-  await ensureUser(userId);
-
-  // Check whether this step is already recorded — keep it idempotent
-  const existing = await db
-    .select()
-    .from(progress)
-    .where(eq(progress.userId, userId));
-
-  if (!existing.some((r) => r.stepId === stepId)) {
-    await db.insert(progress).values({
-      id: crypto.randomUUID(),
-      userId,
-      stepId,
-    });
+  if (DEMO_MODE) {
+    demoProgress.add(stepId);
+    const completedStepIds = Array.from(demoProgress);
+    const nextStepId = STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
+    return NextResponse.json({ ok: true, nextStepId });
   }
 
-  // Re-fetch to compute the next step
-  const all = await db
-    .select()
-    .from(progress)
-    .where(eq(progress.userId, userId));
+  // Real DB path
+  const { db } = await import("@/lib/db");
+  const { progress, users } = await import("@/lib/db/schema");
+  const { eq } = await import("drizzle-orm");
 
+  await db.insert(users).values({ id: userId, email: `user-${userId}@agentpath.app`, displayName: "Learner" }).onConflictDoNothing();
+  const existing = await db.select().from(progress).where(eq(progress.userId, userId));
+  if (!existing.some((r) => r.stepId === stepId)) {
+    await db.insert(progress).values({ id: crypto.randomUUID(), userId, stepId });
+  }
+  const all = await db.select().from(progress).where(eq(progress.userId, userId));
   const completedStepIds = all.map((r) => r.stepId);
-  const nextStepId =
-    STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
-
+  const nextStepId = STEP_ORDER.find((id) => !completedStepIds.includes(id)) ?? null;
   return NextResponse.json({ ok: true, nextStepId });
 }
