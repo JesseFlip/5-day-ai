@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { TutorChat } from "./tutor-chat";
+import type { TutorModel } from "./use-tutor-chat";
 
 interface TutorDrawerProps {
   moduleId: number;
@@ -10,6 +11,7 @@ interface TutorDrawerProps {
 
 export function TutorDrawer({ moduleId, moduleTitle }: TutorDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [model, setModel] = useState<TutorModel>("claude");
   const drawerRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape key
@@ -104,7 +106,7 @@ export function TutorDrawer({ moduleId, moduleTitle }: TutorDrawerProps) {
 
         {/* Chat content */}
         <div className="flex-1 overflow-hidden">
-          <TutorChat moduleId={moduleId} moduleTitle={moduleTitle} />
+          <TutorChat moduleId={moduleId} moduleTitle={moduleTitle} model={model} onModelChange={setModel} />
         </div>
       </div>
     </>

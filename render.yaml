@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: agentpath
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: false
+      - key: SKIP_ENV_VALIDATION
+        value: false
+      - key: MCP_API_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agentpath-db
+          property: connectionString
+      # Set these manually in the Render dashboard after first deploy:
+      # - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+      # - key: CLERK_SECRET_KEY
+      # - key: ANTHROPIC_API_KEY         (optional if using Gemini)
+      # - key: GOOGLE_GENERATIVE_AI_API_KEY  (optional if using Claude)
+      # - key: UPSTASH_REDIS_REST_URL    (optional — rate limiting fails open)
+      # - key: UPSTASH_REDIS_REST_TOKEN  (optional — rate limiting fails open)
+
+databases:
+  - name: agentpath-db
+    plan: starter
+    region: oregon
+    databaseName: agentpath
+    user: agentpath
