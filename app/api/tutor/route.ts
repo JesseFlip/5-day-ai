@@ -3,6 +3,9 @@ import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
 
 export type TutorModel = "claude" | "gemini";
 
+// Streaming LLM responses can outlast the default function timeout.
+export const maxDuration = 60;
+
 const MODULE_CONTENT: Record<number, string> = {
   1: "Day 1: Introduction to Agents & Vibe Coding — vibe coding, agentic SDLC, factory model.",
   2: "Day 2: Agent Tools & Interoperability — MCP, Agent2Agent (A2A), A2UI, AP2, UCP protocols.",
