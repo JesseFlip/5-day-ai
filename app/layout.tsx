@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "@/components/providers";
 import { DemoBanner } from "@/components/demo-banner";
+import { CLERK_ENABLED } from "@/lib/auth-config";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -15,8 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ClerkProvider>
+  const page = (
       <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
         <body className="min-h-screen flex flex-col antialiased bg-background text-foreground">
           <Providers>
@@ -25,6 +25,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Providers>
         </body>
       </html>
-    </ClerkProvider>
   );
+  return CLERK_ENABLED ? <ClerkProvider>{page}</ClerkProvider> : page;
 }

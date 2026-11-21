@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
+import { getUserId as resolveUserId } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo";
 import { STATIC_HINTS } from "@/lib/content/hints";
 
 // Demo in-memory store (resets on server restart — fine for local testing)
 export const demoHintReveals = new Map<string, Set<number>>();
 
-async function resolveUserId(): Promise<string | null> {
-  if (DEMO_MODE) return DEMO_USER_ID;
-  const { userId } = await auth();
-  return userId;
-}
 
 export async function GET(
   _req: Request,

@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
-import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
+import { getUserId as resolveUserId } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo";
 
 export type TutorModel = "claude" | "gemini";
 
@@ -45,11 +45,6 @@ function* demoStream(moduleId: number, message: string): Generator<string> {
   }
 }
 
-async function resolveUserId(): Promise<string | null> {
-  if (DEMO_MODE) return DEMO_USER_ID;
-  const { userId } = await auth();
-  return userId;
-}
 
 export async function POST(req: Request) {
   const userId = await resolveUserId();
@@ -116,7 +111,7 @@ export async function POST(req: Request) {
   let aiModel;
   if (selectedModel === "gemini") {
     const { google } = await import("@ai-sdk/google");
-    aiModel = google("gemini-2.0-flash");
+    aiModel = google(process.env.GEMINI_MODEL ?? "gemini-3.5-flash");
   } else {
     const { anthropic } = await import("@ai-sdk/anthropic");
     aiModel = anthropic("claude-sonnet-4-6");

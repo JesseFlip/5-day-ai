@@ -32,7 +32,7 @@ AgentPath preserves the structure of the 5-Day course — *concept summary → w
 ## Stack
 
 - **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui
-- **Auth:** Clerk
+- **Auth:** Clerk (optional — falls back to anonymous per-browser IDs)
 - **Database:** PostgreSQL via Neon + Drizzle ORM
 - **AI:** Vercel AI SDK + Claude claude-sonnet-4-6 + Google ADK
 - **Agents:** MCP server (`@modelcontextprotocol/sdk`), Vercel AI SDK multi-agent
@@ -67,7 +67,7 @@ See `.env.example` for all required environment variables.
 2. Add a Postgres database — e.g. **Neon** from the Vercel Marketplace (Storage tab). It sets `DATABASE_URL` for you; make sure it's the **pooled** connection string.
 3. Optionally add **Upstash Redis** from the Marketplace for rate limiting (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`).
 4. Under **Settings → Environment Variables**, add:
-   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (required — even in demo mode, Clerk needs keys in production)
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (optional — without them there are no accounts; each browser gets an anonymous ID cookie and progress is saved per browser)
    - `ANTHROPIC_API_KEY` and/or `GOOGLE_GENERATIVE_AI_API_KEY`
    - `MCP_API_KEY` (any random string)
    - `DEMO_MODE=true` if you want a no-database showcase deployment
