@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tutorMessages } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
@@ -8,7 +8,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ moduleId: string }> }
 ) {
-  const { userId } = await auth();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { moduleId } = await params;
@@ -31,7 +31,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ moduleId: string }> }
 ) {
-  const { userId } = await auth();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { moduleId } = await params;

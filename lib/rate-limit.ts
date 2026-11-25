@@ -19,6 +19,10 @@ export async function checkRateLimit(
   windowSeconds = 3600
 ): Promise<{ success: boolean; retryAfter?: number }> {
   if (process.env.SKIP_ENV_VALIDATION === "true") return { success: true };
+  // Not configured → fail open without constructing a client that would error on every call.
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return { success: true };
+  }
   try {
     const r = getRedis();
     const rkey = `rl:${key}:${userId}`;

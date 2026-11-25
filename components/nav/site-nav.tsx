@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { UserButton } from "@clerk/nextjs";
+import { AuthUserButton } from "@/components/auth";
 import { Sun, Moon, Flame, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,14 +53,8 @@ export function SiteNav({ streak = 0 }: SiteNavProps) {
             <Moon size={16} className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </button>
 
-          {/* Clerk user button */}
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "h-7 w-7",
-              },
-            }}
-          />
+          {/* Clerk user button (only when Clerk is configured) */}
+          <AuthUserButton />
         </div>
       </div>
     </nav>

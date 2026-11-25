@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
+import { getUserId as resolveUserId } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { STATIC_HINTS } from "@/lib/content/hints";
@@ -13,11 +13,6 @@ const bodySchema = z.object({
 // In-memory demo store for hint reveals
 const demoReveals = new Map<string, Set<number>>();
 
-async function resolveUserId(): Promise<string | null> {
-  if (DEMO_MODE) return DEMO_USER_ID;
-  const { userId } = await auth();
-  return userId;
-}
 
 export async function POST(
   req: Request,

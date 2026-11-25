@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { DEMO_MODE, DEMO_USER_ID } from "@/lib/demo";
+import { getUserId as resolveUserId } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo";
 import { z } from "zod";
 
 const STEP_ORDER = [
@@ -40,11 +40,6 @@ function calculateStreak(completedAts: Date[]): number {
   return streak;
 }
 
-async function resolveUserId(): Promise<string | null> {
-  if (DEMO_MODE) return DEMO_USER_ID;
-  const { userId } = await auth();
-  return userId;
-}
 
 export async function GET() {
   const userId = await resolveUserId();

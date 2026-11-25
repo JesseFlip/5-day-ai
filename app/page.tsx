@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SignInButton, useUser } from "@clerk/nextjs";
+import { AuthSignInButton, useAuthState } from "@/components/auth";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { SiteNav } from "@/components/nav/site-nav";
 import { Roadmap } from "@/components/roadmap/roadmap";
@@ -63,12 +63,12 @@ function SignInPrompt() {
           AgentPath saves your progress, tracks your streak, and knows exactly where you left off.
         </p>
       </div>
-      <SignInButton mode="modal">
+      <AuthSignInButton>
         <button className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
           Sign in to get started
           <ArrowRight size={15} />
         </button>
-      </SignInButton>
+      </AuthSignInButton>
     </div>
   );
 }
@@ -116,7 +116,7 @@ function WelcomeBanner({ progress }: { progress: ProgressData }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const { isLoaded: clerkLoaded, isSignedIn } = useUser();
+  const { isLoaded: clerkLoaded, isSignedIn } = useAuthState();
   const queryClient = useQueryClient();
 
   const {

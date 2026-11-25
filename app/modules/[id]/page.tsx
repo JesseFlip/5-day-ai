@@ -1,41 +1,28 @@
 import { TutorSidebar } from "@/components/tutor/tutor-sidebar";
 import { TutorDrawer } from "@/components/tutor/tutor-drawer";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { MODULES, getModuleById, getStepsForModule } from "@/lib/content/curriculum";
 
-interface Step {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  externalUrl?: string | null;
-  estimatedMinutes: number;
-  difficulty: string;
-  order: number;
+// Curriculum is static, so every module page is pre-rendered at build time
+// and served from Vercel's CDN. Reading the data directly (instead of fetching
+// our own /api route over HTTP) avoids an extra function hop and breaks no
+// matter whether Deployment Protection is enabled on preview URLs.
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return MODULES.map((m) => ({ id: String(m.id) }));
 }
 
-interface ModuleData {
-  id: number;
-  title: string;
-  focusSummary: string;
-  podcastUrl: string;
-  whitepaperUrl: string;
-}
-
-async function getModuleData(id: string): Promise<{ module: ModuleData | null; steps: Step[] }> {
-  const baseUrl =
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  try {
-    const res = await fetch(`${baseUrl}/api/modules/${id}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return { module: null, steps: [] };
-    return res.json();
-  } catch {
-    return { module: null, steps: [] };
-  }
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const mod = getModuleById(Number(id));
+  return mod ? { title: `${mod.title} | AgentPath` } : {};
 }
 
 const STEP_TYPE_LABELS: Record<string, string> = {
@@ -51,81 +38,15 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   advanced: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
-// Fallback module data when API returns null (stubs not yet implemented)
-const FALLBACK_MODULES: Record<string, ModuleData> = {
-  "1": {
-    id: 1,
-    title: "Introduction to Agents & Vibe Coding",
-    focusSummary:
-      "Learn what AI agents are, explore the agentic Software Development Lifecycle, and dive into the factory model of vibe coding.",
-    podcastUrl: "https://www.youtube.com/watch?v=cbzmr7vt4XA",
-    whitepaperUrl: "https://www.kaggle.com/whitepaper-the-new-SDLC-with-vibe-coding",
-  },
-  "2": {
-    id: 2,
-    title: "Agent Tools & Interoperability",
-    focusSummary:
-      "Explore the protocols that connect agents to tools and each other: MCP, Agent2Agent (A2A), A2UI, AP2, and UCP.",
-    podcastUrl: "https://www.youtube.com/watch?v=GjjKXqxFTOY",
-    whitepaperUrl: "https://www.kaggle.com/whitepaper-agent-tools-and-interoperability",
-  },
-  "3": {
-    id: 3,
-    title: "Agent Skills & SKILL.md",
-    focusSummary:
-      "Master the SKILL.md format for defining agent behavior, progressive context disclosure, and preventing context rot.",
-    podcastUrl: "https://www.youtube.com/watch?v=uYURYHhpmKc",
-    whitepaperUrl: "https://www.kaggle.com/whitepaper-agent-skills",
-  },
-  "4": {
-    id: 4,
-    title: "Vibe Coding Agent Security & Evaluation",
-    focusSummary:
-      "Understand the 7-pillar Effective Trust security model, ephemeral sandboxing, slopsquatting, and OpenTelemetry trajectory evaluation.",
-    podcastUrl: "https://www.youtube.com/watch?v=Ddz1b8CYPvg",
-    whitepaperUrl: "https://www.kaggle.com/whitepaper-vibe-coding-agent-security-and-evaluation",
-  },
-  "5": {
-    id: 5,
-    title: "Capstone Project",
-    focusSummary:
-      "Apply 3+ course concepts in a real project. Choose from: Agents for Good, Business Agents, Concierge Agents, or Freestyle.",
-    podcastUrl: "https://www.youtube.com/watch?v=cbzmr7vt4XA",
-    whitepaperUrl: "https://www.kaggle.com/",
-  },
-};
-
 export default async function ModulePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { module: mod, steps } = await getModuleData(id);
-
-  // Use fallback if API stub hasn't been implemented
-  const moduleData = mod ?? FALLBACK_MODULES[id] ?? null;
-
-  if (!moduleData) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-zinc-800 dark:text-zinc-200">
-            Module not found
-          </h1>
-          <p className="mt-2 text-zinc-500">
-            This module does not exist or has not been published yet.
-          </p>
-          <Link
-            href="/"
-            className="mt-4 inline-block text-sm text-blue-600 underline underline-offset-2 dark:text-blue-400"
-          >
-            Back to home
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const moduleData = getModuleById(Number(id));
+  if (!moduleData) notFound();
+  const steps = getStepsForModule(moduleData.id);
 
   return (
     <>
